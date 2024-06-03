@@ -39,23 +39,3 @@ function personalizedDonation(amount, options = {}) {
         donations: donationResult
     };
 }
-
-// Exemple d'utilisation
-try {
-    const filteredAssociations = filterAssociationsByType('environnement');
-    console.log('Associations filtrées par type "environnement":', filteredAssociations);
-
-    const donation = personalizedDonation(50, {
-        minimum: 10,
-        recurring: true,
-        distributeEqually: true,
-    });
-    console.log('Résultat du don personnalisé:', donation);
-
-    const randomDonation = personalizedDonation(20, {
-        random: true
-    });
-    console.log('Don aléatoire:', randomDonation);
-} catch (error) {
-    console.error('Erreur:', error.message);
-}

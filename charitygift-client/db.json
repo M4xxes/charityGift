@@ -1,0 +1,11 @@
+{
+    "posts": [
+      { "id": 1, "title": "Hello World", "content": "Welcome to learning React!" },
+      { "id": 2, "title": "Installation", "content": "You can install React from npm." }
+    ],
+    "comments": [
+      { "id": 1, "postId": 1, "content": "Great post!" },
+      { "id": 2, "postId": 2, "content": "Thanks for the information." }
+    ]
+  }
+  

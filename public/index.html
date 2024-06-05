@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CharityGift</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://js.stripe.com/v3/"></script> <!-- Stripe JS -->
+</head>
+<body>
+    <div class="container">
+        <img src="Charity.png" alt="CharityGift Logo" class="logo">
+        <h1>CharityGift</h1>
+        <p>Support your favorite associations by making a donation</p>
+        <div class="add-money-container">
+            <input type="number" id="money-amount" placeholder="Amount" class="money-input">
+            <button id="add-money" class="add-money">Add Fake Money</button>
+            <button id="pay-money" class="add-money">Pay with Stripe</button>
+        </div>
+        <p>Available Money: $<span id="money-counter">100</span></p>
+        <div id="payment-form">
+            <div id="card-element"><!-- Stripe.js injects the Card Element --></div>
+            <div id="card-errors" role="alert"></div>
+            <button id="submit-payment">Submit Payment</button>
+        </div>
+        <input type="text" id="search-bar" placeholder="Search for an association..." class="search-bar">
+        <select id="category-selector" class="category-selector">
+            <option value="">All Categories</option>
+            <option value="Humanitaire">Humanitaire</option>
+            <option value="Animal">Animal</option>
+            <option value="Sport">Sport</option>
+            <option value="Environnement">Environnement</option>
+            <option value="Éducation">Éducation</option>
+            <option value="Culture">Culture</option>
+            <option value="Social">Social</option>
+            <option value="Santé">Santé</option>
+            <option value="Jeunesse">Jeunesse</option>
+            <option value="Technologie">Technologie</option>
+        </select>
+        <div id="filter-results"></div>
+        <div id="associations"></div>
+    </div>
+
+    <script>
+        let allAssociations = [];
+        let availableMoney = 100;
+        const stripe = Stripe('pk_test_51PON9hFFq5gNYQ18syC2ZvHzUqP640jjvhY7frNsgaaOjX0sYt6DEGnNlUh2ivF2ntO56Elb2hAuaNtkgrb2FmMN00PhAT2Bjc'); // Remplacez par votre clé publique de test Stripe
+
+        $(document).ready(function() {
+            loadAssociations();
+
+            const elements = stripe.elements();
+            const card = elements.create('card');
+            card.mount('#card-element');
+
+            $('#search-bar').on('input', function() {
+                filterAssociations();
+            });
+
+            $('#category-selector').on('change', function() {
+                filterAssociations();
+            });
+
+            $('#add-money').on('click', function() {
+                const amount = parseFloat($('#money-amount').val());
+                if (!isNaN(amount) && amount > 0) {
+                    availableMoney += amount;
+                    updateMoneyCounter();
+                } else {
+                    alert('Please enter a valid amount.');
+                }
+            });
+
+            $('#pay-money').on('click', function() {
+                const amount = parseFloat($('#money-amount').val());
+                if (!isNaN(amount) && amount > 0) {
+                    createStripePayment(amount);
+                } else {
+                    alert('Please enter a valid amount.');
+                }
+            });
+
+            $('#submit-payment').on('click', async function() {
+                const clientSecret = $('#submit-payment').data('clientSecret');
+                const result = await stripe.confirmCardPayment(clientSecret, {
+                    payment_method: {
+                        card: card,
+                        billing_details: {
+                            name: 'Jenny Rosen',
+                        },
+                    }
+                });
+
+                if (result.error) {
+                    console.error(result.error.message);
+                    $('#card-errors').text(result.error.message);
+                } else {
+                    if (result.paymentIntent.status === 'succeeded') {
+                        availableMoney += parseFloat($('#money-amount').val());
+                        updateMoneyCounter();
+                        alert('Payment successful!');
+                    }
+                }
+            });
+        });
+
+        function loadAssociations() {
+            axios.get('/api/associations')
+                .then(response => {
+                    allAssociations = response.data;
+                    displayAssociations(allAssociations);
+                })
+                .catch(error => console.error('Error fetching associations:', error));
+        }
+
+        function filterAssociations() {
+            const searchTerm = $('#search-bar').val().toLowerCase();
+            const category = $('#category-selector').val();
+            let filteredAssociations = allAssociations;
+
+            if (category) {
+                filteredAssociations = filteredAssociations.filter(association => association.category.toLowerCase() === category.toLowerCase());
+            }
+
+            if (searchTerm) {
+                filteredAssociations = filteredAssociations.filter(association => 
+                    association.name.toLowerCase().includes(searchTerm) ||
+                    association.cause.toLowerCase().includes(searchTerm) ||
+                    association.description.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            displayAssociations(filteredAssociations);
+            displayFilterResults(category, searchTerm, filteredAssociations.length);
+        }
+
+        function displayFilterResults(category, searchTerm, count) {
+            const filterResults = $('#filter-results');
+            filterResults.empty();
+            let message = 'Showing all associations';
+            if (category || searchTerm) {
+                message = `Showing ${count} association(s) for `;
+                if (category) {
+                    message += `category "${category}"`;
+                }
+                if (searchTerm) {
+                    if (category) {
+                        message += ' and ';
+                    }
+                    message += `search term "${searchTerm}"`;
+                }
+            }
+            filterResults.text(message);
+        }
+
+        function displayAssociations(associations) {
+            const associationsContainer = $('#associations');
+            associationsContainer.empty();
+            associations.forEach(association => {
+                const associationCard = `
+                    <div class="card">
+                        <h2>${association.name}</h2>
+                        <p><strong>Cause:</strong> ${association.cause}</p>
+                        <p><strong>Description:</strong> ${association.description}</p>
+                        <p><strong>Address:</strong> ${association.address}</p>
+                        <input type="number" id="donation-${association.id}" placeholder="Donation amount" class="donation-input">
+                        <button onclick="donate('${association.id}')">Donate</button>
+                    </div>
+                `;
+                associationsContainer.append(associationCard);
+            });
+        }
+
+        function donate(associationId) {
+            const amount = parseFloat($(`#donation-${associationId}`).val());
+            if (amount > availableMoney) {
+                alert('Not enough money available.');
+                return;
+            }
+            availableMoney -= amount;
+            updateMoneyCounter();
+            axios.post('/api/donate', {
+                associationId,
+                amount
+            }).then(response => {
+                alert(response.data.message);
+            }).catch(error => console.error('Error making donation:', error));
+        }
+
+        function updateMoneyCounter() {
+            $('#money-counter').text(availableMoney.toFixed(2));
+        }
+
+        async function createStripePayment(amount) {
+            try {
+                const response = await axios.post('/api/create-payment-intent', { amount });
+                const clientSecret = response.data.clientSecret;
+
+                $('#submit-payment').data('clientSecret', clientSecret);
+                $('#payment-form').show();
+            } catch (error) {
+                console.error('Error creating payment:', error);
+            }
+        }
+    </script>
+</body>
+</html>

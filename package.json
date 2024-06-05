@@ -1,6 +1,18 @@
 {
   "dependencies": {
+    "axios": "^1.7.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
-  }
+    "express": "^4.19.2",
+    "stripe": "^15.9.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "name": "charitygift",
+  "description": "Charity Gift est un site web qui regroupent diverses associations caritatives en un seul endroit. Notre objectif est de permettre à chacun de trouver facilement des associations fiables et de pouvoir faire des dons en toute simplicité, que ce soit pour une cause spécifique ou pour plusieurs causes de manière équitable ou aléatoire.",
+  "version": "1.0.0",
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

@@ -175,9 +175,13 @@
 
         function donate(associationId) {
             const amount = parseFloat($(`#donation-${associationId}`).val());
-            if (amount > availableMoney) {
+            console.log(amount<0)
+            if (amount > availableMoney ) {
                 alert('Not enough money available.');
                 return;
+            }else if ( !(amount <0) && !(amount >0) )  {
+                alert('Not money')
+                return
             }
             availableMoney -= amount;
             updateMoneyCounter();
